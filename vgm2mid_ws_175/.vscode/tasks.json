@@ -1,0 +1,43 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build vgm_ws_to_mid",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-o",
+                "${workspaceFolder}/vgm_ws_to_mid/vgm_ws_to_mid.exe",
+                "${workspaceFolder}/vgm_ws_to_mid/main.cpp",
+                "${workspaceFolder}/vgm_ws_to_mid/VgmReader.cpp",
+                "${workspaceFolder}/vgm_ws_to_mid/WonderSwanChip.cpp",
+                "${workspaceFolder}/vgm_ws_to_mid/MidiWriter.cpp",
+                "-static"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "build validator",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "-o",
+                "${workspaceFolder}/vgm_ws_to_mid/validator.exe",
+                "${workspaceFolder}/vgm_ws_to_mid/validator_main.cpp",
+                "-static"
+            ],
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}
