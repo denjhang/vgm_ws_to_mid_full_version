@@ -1,6 +1,6 @@
 # vgm_ws_to_mid_full_version
 Wonderswan VGM to Standard MIDI Converter with ongoing version updates
-# vgm_ws_to_mid v1.6
+# vgm_ws_to_mid v2.21
 # vgm_ws_to_mid: WonderSwan VGM to MIDI Converter - Project Documentation
 
 This document provides a detailed account of the development journey, technical implementation, and final program workflow of the `vgm_ws_to_mid` converter.
@@ -19,6 +19,7 @@ This document provides a detailed account of the development journey, technical 
   * [2.7. A New Chapter: Implementing Seamless Looping and Final Stability](#27-a-new-chapter-implementing-seamless-looping-and-final-stability)
   * [2.8. Deep Instance Trace: The Complete Lifecycle of a Note](#28-deep-instance-trace-the-complete-lifecycle-of-a-note)
   * [2.9. Ultimate Stability: Fixing Crashes Caused by Unknown VGM Commands](#29-ultimate-stability-fixing-crashes-caused-by-unknown-vgm-commands)
+  * [2.10. The Intelligent Instrument System: `instruments.ini`](#210-the-intelligent-instrument-system-instrumentsini)
 * [3. Program Workflow Explained](#3-program-workflow-explained)
   * [3.1. Overview](#31-overview)
   * [3.2. Key Components](#32-key-components)
@@ -329,6 +330,124 @@ After the project's basic functions were complete and had passed numerous tests,
 
     By adding the correct `case` branches for these commands and incrementing the file pointer by the appropriate offset, we completely resolved the crash. This fix made the converter much more robust, enabling it to be compatible with more VGM files that, while syntactically correct, did not perfectly match our initial expectations.
 
+### 2.10. The Intelligent Instrument System: `instruments.ini`
+
+To solve the problem of mapping WonderSwan's custom waveforms to MIDI instruments and to give the user final control, we have introduced a brand-new intelligent instrument configuration system. The core of this system is the `instruments.ini` file.
+
+**Core Features:**
+
+*   **Automatic Discovery and Registration**: When the converter encounters a waveform it has never seen before in a VGM file, it will:
+    1.  Generate a unique **32-byte fingerprint** for the waveform.
+    2.  Automatically assign the most suitable default MIDI instrument based on the waveform's characteristics.
+    3.  Generate a unique name for it, such as `CustomWave_1`.
+    4.  Record the **source** where the waveform was discovered (i.e., the name of the current VGM file).
+    5.  Record the registration **timestamp** (`registered_at`).
+    6.  Write all of the above information, along with an ASCII art **waveform graph**, as a new entry into the `instruments.ini` file.
+
+*   **User-Configurable**: `instruments.ini` is a plain text file that you can open with any text editor. If you are not satisfied with the automatically assigned MIDI instrument for a waveform, simply find the corresponding entry (e.g., `[CustomWave_1]`) and **manually change the number after `midi_instrument =`**. The next time you run the conversion, the program will read your changes and use the instrument you specified.
+
+*   **Built-in Waveform Support**: On its first run, `instruments.ini` is automatically created and pre-populated with the WonderSwan's 5 built-in waveforms, ensuring the accuracy of basic tones.
+
+**`instruments.ini` File Structure Example:**
+
+```ini
+[CustomWave_1]
+fingerprint = 00010102...
+midi_instrument = 80
+source = 17_Battle.vgm
+registered_at = 2025-09-23 19:33:12
+graph =
+;                                █
+;                              ███
+...
+```
+
+**Built-in Waveform Graph Reference:**
+
+Below are the core built-in waveforms of the WonderSwan and their corresponding ASCII graphs in `instruments.ini`. This helps you to visually understand the appearance of different waveforms.
+
+*   **Pulse Wave (PULSE)**
+    ```
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████                
+    ; ████████████████████████████████
+    ```
+
+*   **Triangle Wave (WAVE_BUILTIN_1)**
+    ```
+    ;                ██               
+    ;               ████              
+    ;              ██████             
+    ;             ████████            
+    ;            ██████████           
+    ;           ████████████          
+    ;          ██████████████         
+    ;         ████████████████        
+    ;        ██████████████████       
+    ;       ████████████████████      
+    ;      ██████████████████████     
+    ;     ████████████████████████    
+    ;    ██████████████████████████   
+    ;   ████████████████████████████  
+    ;  ██████████████████████████████ 
+    ; ████████████████████████████████
+    ```
+
+*   **Sawtooth Wave (WAVE_BUILTIN_3)**
+    ```
+    ; █                              █
+    ; ██                            ██
+    ; ███                          ███
+    ; ████                        ████
+    ; █████                      █████
+    ; ██████                    ██████
+    ; ███████                  ███████
+    ; ████████                ████████
+    ; █████████              █████████
+    ; ██████████            ██████████
+    ; ███████████          ███████████
+    ; ████████████        ████████████
+    ; █████████████      █████████████
+    ; ██████████████    ██████████████
+    ; ███████████████  ███████████████
+    ; ████████████████████████████████
+    ```
+
+*   **Noise (NOISE)**
+    ```
+    ;   █               █             
+    ;   █            █  █            █
+    ;   █       █    █  █       █    █
+    ;   █ █     █    █  █ █     █    █
+    ;   █ █   █ █    █  █ █   █ █    █
+    ;   █ █   █ █  █ █  █ █   █ █  █ █
+    ;   █ ██  █ █  █ █  █ ██  █ █  █ █
+    ; █ █ ██  █ █  █ ██ █ ██  █ █  █ █
+    ; █ █ ██ ██ █  █ ██ █ ██ ██ █  █ █
+    ; █ █ ██ ██ █ ██ ██ █ ██ ██ █ ██ █
+    ; █ ████ ██ █ ██ ██ ████ ██ █ ██ █
+    ; █ ████ ████ ██ ██ ████ ████ ██ █
+    ; █ ████ ████ █████ ████ ████ ████
+    ; ██████ ████ ██████████ ████ ████
+    ; ██████ ███████████████ █████████
+    ; ████████████████████████████████
+    ```
+
+This system perfectly combines the automation of waveform recognition with the flexibility of manual user configuration, representing a huge leap forward in the project's usability and user experience.
+
 ## 3. Program Workflow Explained
 
 The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of the WonderSwan sound chip and translates its state changes into MIDI events in real-time.
@@ -356,9 +475,11 @@ The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of th
 *   **`WonderSwanChip.h/.cpp`**: The **conversion core**.
     *   It maintains an `io_ram` array to simulate the chip's 256 I/O registers.
     *   The `write_port()` method is the key entry point, updating internal state variables (like `channel_periods`, `channel_volumes_left`, etc.) based on the port address being written to.
-    *   `check_state_and_update_midi()` is the brain of the state machine. After each state update, it compares the current state to the previous one to determine if a MIDI event needs to be generated, thus intelligently handling legato (pitch bend), re-triggers, and volume envelopes.
+    *   `check_state_and_update_midi()` is the brain of the state machine. After each state update, it compares the current state to the previous one to determine if a MIDI event needs to be generated, thus intelligently handling legato (pitch bend), re-triggers, and volume envelopes. It now also calls `InstrumentConfig` to get or create an instrument.
     *   A new `get_channel_count()` method was added to dynamically return the total number of tracks managed by the chip, resolving the out-of-bounds access issue caused by hardcoding.
 *   **`MidiWriter.h/.cpp`**: The MIDI file generator. It has undergone a major refactor and now internally uses a `std::vector<MidiEvent>` to store structured MIDI events instead of raw bytes. This makes precise manipulation of events possible. It provides a simple set of APIs (like `add_note_on`, `add_control_change`) to build a track and adds a new `copy_events_from` method, which can efficiently copy events from one point in time to another, key to enabling seamless looping. This method now also has built-in logic to automatically close notes that are not closed at the loop block boundary. When the conversion is finished, the `write_to_file()` method dynamically serializes the event list into a standard MIDI file.
+*   **`InstrumentConfig.h/.cpp`**: The **Intelligent Instrument Configuration System**. This is the newest core component, responsible for managing the `instruments.ini` file. It implements waveform auto-discovery, fingerprint generation, similarity comparison, and automatic registration. It is also responsible for loading the user's custom instrument settings and providing the final MIDI instrument number to `WonderSwanChip`.
+*   **`UsageLogger.h/.cpp`**: The **Usage Logger**. Responsible for generating the `conversion_log.txt` file. It reports all new instruments registered during the conversion and provides a detailed breakdown of waveform usage frequency per channel, offering the user a comprehensive report of the conversion process.
 
 ### 3.3. Key Formulas and Constants
 
@@ -378,7 +499,7 @@ This project is compiled using g++ in a bash environment.
 
 *   **Compile**:
     ```bash
-    g++ -std=c++17 -o vgm_ws_to_mid/vgm2mid.exe vgm_ws_to_mid/main.cpp vgm_ws_to_mid/VgmReader.cpp vgm_ws_to_mid/WonderSwanChip.cpp vgm_ws_to_mid/MidiWriter.cpp -static
+    g++ -std=c++17 -o vgm_ws_to_mid/vgm2mid.exe vgm_ws_to_mid/main.cpp vgm_ws_to_mid/VgmReader.cpp vgm_ws_to_mid/WonderSwanChip.cpp vgm_ws_to_mid/MidiWriter.cpp vgm_ws_to_mid/InstrumentConfig.cpp vgm_ws_to_mid/UsageLogger.cpp vgm_ws_to_mid/WaveformInfo.cpp -lstdc++fs
     ```
 *   **Run**:
     ```bash
@@ -391,4 +512,5 @@ This project is compiled using g++ in a bash environment.
 
 ---
 This document provides a comprehensive summary of our work. We hope it serves as a clear guide for future development and maintenance.
+
 
