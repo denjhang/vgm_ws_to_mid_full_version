@@ -1,5 +1,5 @@
 # vgm_ws_to_mid_full_version
-Wonderswan VGM to Standard MIDI Converter with ongoing version updates
+Wonderswan VGM to Standard MIDI Converter with ongoing version updates ,The protagonist of this programming is basically Claude 4.1 opus AI.
 # vgm_ws_to_mid v2.36
 # vgm_ws_to_mid: WonderSwan VGM to MIDI Converter - Project Documentation
 
