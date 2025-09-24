@@ -1,9 +1,43 @@
 # vgm_ws_to_mid_full_version
 Wonderswan VGM to Standard MIDI Converter with ongoing version updates
-# vgm_ws_to_mid v2.21
+# vgm_ws_to_mid v2.36
 # vgm_ws_to_mid: WonderSwan VGM to MIDI Converter - Project Documentation
 
 This document provides a detailed account of the development journey, technical implementation, and final program workflow of the `vgm_ws_to_mid` converter.
+
+## Acknowledgements
+
+This project was a joint effort between:
+*   **Denjhang**: Responsible for sound testing and providing critical feedback on the output.
+*   **Cline**: Responsible for programming, debugging, and implementing the conversion logic based on feedback.
+
+## References
+
+This project stands on the shoulders of giants, and its success is the result of building upon the foundational work of two key open-source projects. Below is a detailed breakdown of which parts of our converter were inspired by which specific source files from these projects.
+
+### 1. `libvgm`
+
+The `libvgm` library was the foundational pillar for this project, providing the essential logic for parsing the VGM file format itself. Without `libvgm`, reading and interpreting the raw VGM data stream would have been an insurmountable task.
+
+*   **Core Contribution**: VGM file parsing and command dispatching.
+*   **Key Source File**: `libvgm/player/vgmplayer.cpp`
+*   **How it was used**: The main `switch` statement in our `main.cpp` is a direct adaptation of the command processing loop found in `vgmplayer.cpp`. We studied how `libvgm` handles different VGM commands (e.g., `0x61`, `0x62`, `0x66`, `0x51`) and replicated that structure. This includes:
+    *   The logic for advancing the file pointer based on command length.
+    *   The handling of wait commands (`0x61`, `0x62`, `0x63`, `0x7n`) which formed the basis of our timing system.
+    *   The correct "skip" logic for unused or unsupported VGM commands, which was critical for ensuring the stability of our parser (as detailed in section 2.9).
+
+### 2. `modizer`
+
+While `libvgm` taught us how to read the map (the VGM file), `modizer` gave us the key to deciphering the map's most cryptic symbols (the WonderSwan-specific audio registers). It provided the hardware-level simulation logic that was essential for correctly interpreting the data stream that `libvgm` helped us parse.
+
+*   **Core Contribution**: WonderSwan sound chip emulation logic.
+*   **Key Source File**: `modizer-master/libs/libwonderswan/libwonderswan/oswan/audio.cpp`
+*   **How it was used**: Our `WonderSwanChip.cpp` is fundamentally a C++ re-implementation and adaptation of the logic found in `modizer`'s `audio.cpp`. The breakthroughs achieved by studying this file were numerous:
+    *   **Pitch Calculation**: The magical formula `freq = (3072000 / (2048 - period)) / 32` was derived directly from `modizer`'s frequency calculation code. The division by 32, representing the waveform table size, was the single most important discovery for achieving correct pitch.
+    *   **Register Mapping**: The functions of all key I/O ports from `0x80` to `0x94` were deciphered by observing how `audio.cpp` updated its internal state variables when these ports were written to. This included frequency, volume, panning, sweep, and noise controls.
+    *   **Hardware Quirks**: `modizer`'s code also revealed non-obvious hardware behaviors, such as how the Sound DMA process writes its output to Channel 2's volume register (`0x89`), which we faithfully simulated.
+
+In summary, `libvgm` provided the **framework for reading the data**, while `modizer` provided the **knowledge for understanding the data**. The combination of these two resources was the formula for this project's success.
 
 ## Table of Contents
 * [1. Feature Outline &amp; Core Implementation](#1-feature-outline--core-implementation)
@@ -20,11 +54,20 @@ This document provides a detailed account of the development journey, technical 
   * [2.8. Deep Instance Trace: The Complete Lifecycle of a Note](#28-deep-instance-trace-the-complete-lifecycle-of-a-note)
   * [2.9. Ultimate Stability: Fixing Crashes Caused by Unknown VGM Commands](#29-ultimate-stability-fixing-crashes-caused-by-unknown-vgm-commands)
   * [2.10. The Intelligent Instrument System: `instruments.ini`](#210-the-intelligent-instrument-system-instrumentsini)
-* [3. Program Workflow Explained](#3-program-workflow-explained)
-  * [3.1. Overview](#31-overview)
-  * [3.2. Key Components](#32-key-components)
-  * [3.3. Key Formulas and Constants](#33-key-formulas-and-constants)
-* [4. How to Compile and Run](#4-how-to-compile-and-run)
+  * [2.11. Capturing Expression: The Pitch Bend Implementation for Vibrato](#211-capturing-expression-the-pitch-bend-implementation-for-vibrato)
+* [3. A Deep Dive into the WonderSwan Sound System](#3-a-deep-dive-into-the-wonderswan-sound-system)
+  * [3.1. Overview of Sound Channels](#31-overview-of-sound-channels)
+  * [3.2. The Four Main Audio Channels (Programmable Tone)](#32-the-four-main-audio-channels-programmable-tone)
+  * [3.3. Special Channel Features](#33-special-channel-features)
+    * [3.3.1. Hardware Sweep (Channel 2)](#331-hardware-sweep-channel-2)
+    * [3.3.2. Noise Generation (Channel 3)](#332-noise-generation-channel-3)
+    * [3.3.3. PCM Audio via Sound DMA (Channel 1)](#333-pcm-audio-via-sound-dma-channel-1)
+* [4. Program Workflow Explained](#4-program-workflow-explained)
+  * [4.1. Overview](#41-overview)
+  * [4.2. Key Components](#42-key-components)
+  * [4.3. Key Formulas and Constants](#43-key-formulas-and-constants)
+  * [4.4. Conversion Log (`conversion_log.txt`)](#44-conversion-log-conversion_logtxt)
+* [5. How to Compile and Run](#5-how-to-compile-and-run)
 
 ## 1. Feature Outline & Core Implementation
 
@@ -448,11 +491,170 @@ Below are the core built-in waveforms of the WonderSwan and their corresponding 
 
 This system perfectly combines the automation of waveform recognition with the flexibility of manual user configuration, representing a huge leap forward in the project's usability and user experience.
 
-## 3. Program Workflow Explained
+### 2.11. Capturing Expression: The Pitch Bend Implementation for Vibrato
+
+While the converter was highly accurate, it had a limitation in expressing one of the most common musical techniques: vibrato. Fast and wide frequency oscillations were being misinterpreted as a series of very short, distinct notes, which sounded stuttered and unnatural. This section details how we implemented MIDI Pitch Bend to solve this, allowing for smooth and expressive vibrato.
+
+*   **Challenge**:
+    The existing logic treated any change in the frequency `period` that resulted in a different MIDI note number as a trigger for a new note. This meant a `Note Off` was sent for the old note, and a `Note On` for the new one. For a rapid oscillation like vibrato, this created an undesirable "machine-gun" effect instead of a continuous, wavering pitch.
+
+*   **Breakthrough Process: From Re-triggering to Bending**:
+    The core idea was to change the state machine's philosophy: instead of asking "Is this a new note?", we started asking "Is this the *same* note, just with a slight pitch deviation?".
+
+    1.  **Establishing a Baseline**: We introduced a new state variable, `channel_base_note_freq`, to store the initial frequency of a note at the exact moment it is triggered (`Note On`). This frequency corresponds to the note's "true" pitch.
+
+    2.  **Calculating Deviation in Cents**: Whenever the frequency `period` for an active channel changed, we calculated the new frequency. Instead of immediately converting it to a new MIDI note number, we compared it to the `channel_base_note_freq`. The difference was calculated in **cents** (1/100th of a semitone), a logarithmic unit perfect for measuring musical pitch intervals.
+        `cents_deviation = 1200.0 * log2(current_freq / base_freq);`
+
+    3.  **The Vibrato/New Note Threshold**: We established a clear rule:
+        *   **If the deviation is within a defined range** (e.g., +/- 200 cents, or 2 semitones), the change is classified as vibrato or a small portamento.
+        *   **If the deviation exceeds this range**, it is classified as a genuine jump to a new note.
+
+    4.  **Generating Pitch Bend Events**:
+        *   For deviations within the range, we convert the `cents_deviation` into a 14-bit MIDI Pitch Bend value (0-16383, with 8192 as the center/no bend).
+        *   This value is then sent as a Pitch Bend message. If the frequency continues to change, a stream of these messages is sent, creating a smooth pitch curve in the final MIDI.
+        *   To ensure this works, we also send MIDI RPN (Registered Parameter Number) messages at the start of each track to set the synthesizer's pitch bend sensitivity to our desired range (+/- 2 semitones).
+
+    5.  **Handling Jumps**: When the deviation exceeds the threshold, the logic falls back to the old behavior: it sends a `Note Off` for the current note and immediately triggers a `Note On` for the new note, correctly capturing the musical intention of a leap rather than a bend.
+
+*   **Technical Implementation**:
+    *   A new `add_pitch_bend` method was added to the `MidiTrack` class.
+    *   The `check_state_and_update_midi` function in `WonderSwanChip` was significantly refactored to incorporate the new baseline frequency tracking, deviation calculation, and the thresholding logic described above.
+    *   The `Note On` logic was updated to always reset the pitch bend to the center (`8192`) and store the note's base frequency, ensuring each new note starts with a clean slate.
+
+This implementation successfully transformed the previously robotic-sounding note transitions into fluid, expressive vibrato, adding a critical layer of musicality to the converter's output.
+
+## 3. A Deep Dive into the WonderSwan Sound System
+
+To fully appreciate the conversion process, it's essential to understand the sound generation capabilities of the WonderSwan hardware itself. This section provides a detailed technical breakdown of each sound generation method, the I/O registers that control them, and how they are represented by VGM commands.
+
+### 3.1. Overview of Sound Channels
+
+The WonderSwan sound system is surprisingly versatile, featuring four main channels that can be configured for different roles, plus a dedicated PCM audio mechanism.
+
+| Channel | Primary Function | Special Capabilities |
+| :--- | :--- | :--- |
+| **Channel 1** | Programmable Tone | Can be used for PCM playback via Sound DMA |
+| **Channel 2** | Programmable Tone | Hardware Sweep (Pitch slides) |
+| **Channel 3** | Programmable Tone | Noise Generation |
+| **Channel 4** | Programmable Tone | (None) |
+
+All interactions with these sound features in a VGM file are primarily handled by the **`0x51 aa dd`** command, which means "Write data `dd` to I/O port `aa`".
+
+### 3.2. The Four Main Audio Channels (Programmable Tone)
+
+These four channels are the backbone of WonderSwan music, responsible for generating melodies, harmonies, and basslines. They share a common architecture for pitch, volume, and waveform selection.
+
+#### 3.2.1. Pitch Control
+
+*   **Functionality**: Sets the frequency of the note to be played.
+*   **Registers**: Each channel uses a pair of 8-bit registers to define an 11-bit frequency period value (from 0 to 2047). A higher period value results in a lower pitch.
+    *   Channel 1: `0x80` (Low Byte), `0x81` (High Byte)
+    *   Channel 2: `0x82` (Low Byte), `0x83` (High Byte)
+    *   Channel 3: `0x84` (Low Byte), `0x85` (High Byte)
+    *   Channel 4: `0x86` (Low Byte), `0x87` (High Byte)
+*   **VGM Example**: To set Channel 2's period to `0x06B0`:
+    *   `51 82 B0` (Write `0xB0` to the low byte register)
+    *   `51 83 06` (Write `0x06` to the high byte register)
+*   **Conversion Logic**: The converter reads these period values and uses the formula `freq = (3072000 / (2048 - period)) / 32` to calculate the audible frequency, which is then converted to a MIDI note number.
+
+#### 3.2.2. Volume and Panning Control
+
+*   **Functionality**: Sets the volume for the left and right speakers independently for each channel. This allows for both overall volume control and stereo panning effects.
+*   **Registers**: Each channel has a single 8-bit register where the high 4 bits control the left volume (0-15) and the low 4 bits control the right volume (0-15).
+    *   Channel 1: `0x88`
+    *   Channel 2: `0x89`
+    *   Channel 3: `0x8A`
+    *   Channel 4: `0x8B`
+*   **VGM Example**: To set Channel 2's left volume to 10 (`0xA`) and right volume to 15 (`0xF`):
+    *   `51 89 AF` (Write `0xAF` to the volume register)
+*   **Conversion Logic**:
+    *   The converter reads the left and right volumes. The higher of the two is used to calculate the overall note expression (MIDI CC#11).
+    *   The ratio between the left and right volumes is used to calculate the stereo pan position (MIDI CC#10).
+
+#### 3.2.3. Waveform Selection and Memory
+
+*   **Functionality**: This is the most unique feature. Instead of having fixed waveforms (like square, sine), the WonderSwan's four channels read their waveform data directly from a shared block of internal RAM. This allows for custom, dynamic timbres.
+*   **Memory Layout**: The sound chip uses a **2 KB block of internal RAM (from address `0x0000` to `0x07FF`)** as its waveform memory. This RAM is organized into 128 slots, each holding a 16-byte waveform.
+*   **Registers**:
+    *   **Waveform Base Address (`0x8F`)**: This crucial register's value (multiplied by 64) points to the starting address in RAM where the four channels will find their waveform data. For example, if `0x8F` is set to `2`, the waveform data starts at `2 * 64 = 128` (`0x0080` in RAM).
+    *   **Channel Waveform Pointers**: Each channel reads its 16-byte waveform from a specific offset relative to this base address:
+        *   Channel 1: `Base Address + 0`
+        *   Channel 2: `Base Address + 16`
+        *   Channel 3: `Base Address + 32`
+        *   Channel 4: `Base Address + 48`
+*   **VGM Commands**: To create a custom sound, a game's music engine first writes the waveform data into RAM. This is done using the **Sound DMA (Direct Memory Access)** mechanism, which is not directly represented by simple VGM port writes. In a VGM file, this pre-loading of waveform data is typically done using **`0x67` (Data Block)** commands followed by a series of RAM write commands. However, for the purpose of our converter, we focus on what happens *after* the RAM is loaded.
+*   **Conversion Logic (`instruments.ini` system)**:
+    1.  When a note on a channel is triggered, the converter reads the value of register `0x8F` to find the waveform base address.
+    2.  It calculates the specific 16-byte memory region for that channel.
+    3.  It reads the 16 bytes from its simulated `internal_ram`. Each byte contains two 4-bit samples, so it unpacks this into a 32-sample waveform.
+    4.  This 32-sample data becomes the waveform's unique "fingerprint".
+    5.  The converter looks up this fingerprint in `instruments.ini`. If found, it uses the user-specified MIDI instrument. If not, it registers it as a new custom wave and assigns a default instrument.
+
+#### 3.2.4. Channel Activation
+
+*   **Functionality**: A master switch to turn each of the four channels on or off.
+*   **Register**: `0x90` (Channel Enable Register)
+*   **Bits**:
+    *   Bit 0: Enable Channel 1
+    *   Bit 1: Enable Channel 2
+    *   Bit 2: Enable Channel 3
+    *   Bit 3: Enable Channel 4
+*   **VGM Example**: To enable Channel 2 and disable all others:
+    *   `51 90 02` (Write `0b00000010` to port `0x90`)
+*   **Conversion Logic**: This register is the primary trigger for `Note On` and `Note Off` events. When a channel's bit is set to 1 and its volume is greater than 0, a `Note On` is generated. When the bit is cleared to 0, a `Note Off` is generated.
+
+### 3.3. Special Channel Features
+
+Some channels have unique hardware capabilities beyond basic tone generation.
+
+#### 3.3.1. Hardware Sweep (Channel 2)
+
+*   **Functionality**: Channel 2 features a hardware "sweep" function, which can automatically and periodically adjust the channel's frequency period. This is commonly used to create pitch slide effects, arpeggios, or other simple modulations without needing the CPU to manually write new frequency values.
+*   **Registers**:
+    *   **Sweep Step (`0x8C`)**: An 8-bit signed value that determines the amount to add to the channel's period value at each sweep interval. A positive value lowers the pitch, and a negative value raises it.
+    *   **Sweep Time (`0x8D`)**: An 8-bit value that sets the time interval between each sweep step. The actual time is calculated based on the system's H-blank rate.
+    *   **Sweep Enable (in `0x90`)**: Bit 6 of the Channel Enable Register (`0x90`) acts as the master switch for the sweep function on Channel 2.
+*   **VGM Example**: To create a slow upward pitch slide on Channel 2:
+    *   `51 8C E0` (Set sweep step to -32, a negative value to raise the pitch)
+    *   `51 8D 10` (Set a relatively long interval between steps)
+    *   `51 90 42` (Enable Channel 2 via Bit 1, and enable sweep via Bit 6)
+*   **Conversion Logic**: The converter fully simulates this behavior. The `process_sweep` function is called with each time advance. It maintains a `sweep_count` timer. When the timer expires, it adds the `sweep_step` value to `channel_periods[2]` and resets the timer. This change in period is then detected by `check_state_and_update_midi`, which in turn generates the appropriate MIDI Pitch Bend events, accurately reproducing the slide effect.
+
+#### 3.3.2. Noise Generation (Channel 3)
+
+*   **Functionality**: Channel 3 can be switched from a normal tone generator to a noise generator, which is essential for creating percussive sounds like drums, cymbals, or sound effects like explosions.
+*   **Registers**:
+    *   **Noise Control (`0x8E`)**: This register controls the type of noise. The low 3 bits (`0-2`) select one of seven different noise patterns, which likely correspond to different Linear Feedback Shift Register (LFSR) configurations, producing different noise timbres (e.g., more metallic vs. more "white"). Bit 3 is a reset flag.
+    *   **Noise Enable (in `0x90`)**: Bit 7 of the Channel Enable Register (`0x90`) is the master switch that dedicates Channel 3 to noise generation. When this bit is set, Channel 3 ignores its waveform and frequency settings and outputs noise instead.
+*   **VGM Example**: To play a standard noise sound on Channel 3:
+    *   `51 8E 07` (Select noise pattern 7)
+    *   `51 90 88` (Enable Channel 3 via Bit 3, and enable noise mode via Bit 7)
+*   **Conversion Logic**: When the converter detects that Bit 7 of port `0x90` is active, it flags `channel_is_noise[3]` as true. In `check_state_and_update_midi`, if this flag is set, it overrides the normal instrument selection and assigns a percussive MIDI instrument (e.g., `127: Gunshot` or a user-defined drum sound from `instruments.ini`). The pitch of the noise is typically fixed or ignored in the MIDI conversion, as the timbre is the most important characteristic.
+
+#### 3.3.3. PCM Audio via Sound DMA (Channel 1)
+
+*   **Functionality**: This is the most advanced sound feature. The WonderSwan can play back raw, 4-bit PCM audio samples directly from RAM. This is used for complex sound effects, voice clips, or high-quality drum sounds that cannot be synthesized by the other channels. This functionality is tied to Channel 1 and uses the Sound DMA (Direct Memory Access) controller.
+*   **Mechanism**: Instead of the CPU manually feeding sample data, it configures the DMA controller with a start address and length, and the hardware automatically streams the data from RAM to the audio output at a specified rate, hijacking Channel 1's volume controls.
+*   **Registers**:
+    *   **DMA Source Address (`0x4A`, `0x4B`, `0x4C`)**: Three registers combine to form a 24-bit address pointing to the start of the PCM sample data in RAM.
+    *   **DMA Count (`0x4E`, `0x4F`)**: Two registers form a 16-bit value indicating the number of samples to play.
+    *   **DMA Control (`0x52`)**: This register controls the DMA process. Bit 7 starts or stops the DMA, and bits 0-1 control the playback rate.
+    *   **PCM Enable (in `0x90`)**: Bit 5 of the Channel Enable Register (`0x90`) enables PCM output.
+    *   **PCM Direct Volume (`0x94`)**: A separate volume control register used specifically for PCM playback, bypassing Channel 1's normal volume register (`0x88`).
+*   **VGM Commands**: A typical PCM playback sequence in a VGM file involves:
+    1.  Writing the sample data to RAM (often via `0x67` data blocks).
+    2.  `51 4A..4C ..` (Set DMA source address).
+    3.  `51 4E..4F ..` (Set DMA sample count).
+    4.  `51 52 ..` (Set DMA rate and start the transfer).
+    5.  `51 90 20` (Enable PCM output mode).
+*   **Conversion Logic**: The converter simulates the Sound DMA process. The `process_s_dma` function is called with each time advance. It maintains a `s_dma_timer`. When the timer expires, it simulates the hardware fetching one byte of data from the `s_dma_source_addr` in its simulated RAM. This byte is then written to port `0x89` (Channel 2's volume register, a hardware quirk), and the DMA counters are updated. The `check_state_and_update_midi` function detects that PCM mode is active (via port `0x90`, bit 5) and routes the volume from the special PCM volume register (`0x94`) to Channel 1's MIDI output, typically mapping it to a drum or sample-based instrument.
+
+## 4. Program Workflow Explained
 
 The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of the WonderSwan sound chip and translates its state changes into MIDI events in real-time.
 
-### 3.1. Overview
+### 4.1. Overview
 
 1.  **Read**: `VgmReader` is responsible for loading the entire VGM file into memory and providing access to header information (like loop offset, data start position).
 2.  **Process**: The `process_vgm_data` function in `main` is the core driver of the program. It iterates through the VGM data block with a large `for` loop and uses a `switch` statement to dispatch and handle each VGM command:
@@ -468,7 +670,7 @@ The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of th
 5.  **Loop**: After processing the entire VGM file, if a loop point was detected, the `main` function instructs `MidiWriter` to copy the recorded MIDI events from the looped section and append them to the end of each track, creating a seamless loop.
 6.  **Write**: After all VGM commands are processed, `MidiWriter` assembles all generated events (including the copied loop section) into a standard MIDI file and saves it to disk.
 
-### 3.2. Key Components
+### 4.2. Key Components
 
 *   **`main.cpp`**: The program entry point and main controller. It's responsible for parsing command-line arguments, instantiating `VgmReader`, `MidiWriter`, and `WonderSwanChip`. Its core is the `process_vgm_data` function, which contains a large `switch` statement that acts as a "dispatch center" for VGM commands, driving the entire conversion process and implementing the looping logic.
 *   **`VgmReader.h/.cpp`**: The VGM file loader. It's responsible for reading the entire VGM file into memory and parsing the header to extract key metadata, such as the data start offset (`0x34`) and the loop offset (`0x1C`).
@@ -481,7 +683,7 @@ The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of th
 *   **`InstrumentConfig.h/.cpp`**: The **Intelligent Instrument Configuration System**. This is the newest core component, responsible for managing the `instruments.ini` file. It implements waveform auto-discovery, fingerprint generation, similarity comparison, and automatic registration. It is also responsible for loading the user's custom instrument settings and providing the final MIDI instrument number to `WonderSwanChip`.
 *   **`UsageLogger.h/.cpp`**: The **Usage Logger**. Responsible for generating the `conversion_log.txt` file. It reports all new instruments registered during the conversion and provides a detailed breakdown of waveform usage frequency per channel, offering the user a comprehensive report of the conversion process.
 
-### 3.3. Key Formulas and Constants
+### 4.3. Key Formulas and Constants
 
 *   **Timing Conversion**:
     `const double SAMPLES_TO_TICKS = (480.0 * 120.0) / (44100.0 * 60.0);`
@@ -493,7 +695,48 @@ The core of `vgm_ws_to_mid` is a state machine that simulates the behavior of th
     `double curved_vol = pow(normalized_vol, 0.3);`
     `int velocity = static_cast<int>(curved_vol * 127.0);`
 
-## 4. How to Compile and Run
+### 4.4. Conversion Log (`conversion_log.txt`)
+
+To provide maximum transparency and insight into the conversion process, the program generates a detailed log file named `conversion_log.txt` upon every run. This file serves two primary purposes:
+
+1.  **Reporting New Discoveries**: It explicitly lists any new custom waveforms that were discovered in the VGM file during the conversion, along with the default MIDI instrument that was assigned to them. This makes it easy to identify which new entries have been added to `instruments.ini` for potential user customization.
+2.  **Providing Usage Statistics**: It offers a detailed breakdown of which waveforms were used by each of the WonderSwan's four primary sound channels, and how frequently. This data can be invaluable for understanding the sound design of a particular song.
+
+**Example `conversion_log.txt`:**
+
+```
+--- Conversion Log ---
+VGM File: 17_Battle.vgm
+Timestamp: 2025-09-23 20:15:00
+
+--- New Instruments Registered ---
+A new instrument profile has been created and saved to instruments.ini:
+[CustomWave_1]
+- Fingerprint: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+- Assigned MIDI Instrument: 80 (Synth Lead)
+- Source VGM: 17_Battle.vgm
+
+--- Waveform Usage Statistics ---
+
+Channel 1:
+- WAVE_BUILTIN_1 (Triangle): 125 times
+- CustomWave_1: 88 times
+
+Channel 2:
+- WAVE_BUILTIN_1 (Triangle): 210 times
+
+Channel 3:
+- PULSE: 340 times
+
+Channel 4:
+- NOISE: 56 times
+
+--- End of Log ---
+```
+
+This section provides a clear, data-driven summary of the conversion, bridging the gap between the raw VGM input and the final MIDI output.
+
+## 5. How to Compile and Run
 
 This project is compiled using g++ in a bash environment.
 
@@ -512,5 +755,3 @@ This project is compiled using g++ in a bash environment.
 
 ---
 This document provides a comprehensive summary of our work. We hope it serves as a clear guide for future development and maintenance.
-
-
