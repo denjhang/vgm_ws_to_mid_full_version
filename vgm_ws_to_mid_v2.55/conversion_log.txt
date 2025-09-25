@@ -253,3 +253,150 @@ Waveform Usage by Channel:
     - Name: CustomWave_6, Fingerprint: 0b0c0e0d0d0e0c0b030302020101010100000000000000000101010102020303 (117 times)
     - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (95 times)
 
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:19
+Source File: .\02_Prelude.vgm
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (381 times)
+  Channel 1:
+    - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (356 times)
+  Channel 2:
+    - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (380 times)
+  Channel 3:
+    - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (355 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:20
+Source File: .\03 Opening Theme.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (165 times)
+  Channel 1:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (36 times)
+    - Name: CustomWave_42, Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000 (106 times)
+  Channel 2:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (73 times)
+  Channel 3:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (158 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:21
+Source File: .\04_Theme_of_Love.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (83 times)
+    - Name: CustomWave_22, Fingerprint: 0e0e0e0e0e0e0d0d0c0c0b0b0a0a0b0b04040505040403030202010101010101 (66 times)
+  Channel 1:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (1155 times)
+    - Name: CustomWave_22, Fingerprint: 0e0e0e0e0e0e0d0d0c0c0b0b0a0a0b0b04040505040403030202010101010101 (1 times)
+  Channel 2:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (76 times)
+    - Name: CustomWave_22, Fingerprint: 0e0e0e0e0e0e0d0d0c0c0b0b0a0a0b0b04040505040403030202010101010101 (32 times)
+  Channel 3:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (44 times)
+    - Name: CustomWave_17, Fingerprint: 0000000000000000000000000000040408080f0f0f0f0f0f0f0f0f0f08080404 (58 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:22
+Source File: .\05_Main_Theme.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+  - CustomWave_44 (Fingerprint: 00000101020203030404050506060707080809090a0a0b0b0c0c0d0d0e0e0f0f)
+  - CustomWave_45 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000000000102030304)
+  - CustomWave_46 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000b0c0c0d0d0e0e0f)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (69 times)
+  Channel 1:
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (219 times)
+  Channel 2:
+    - Name: CustomWave_44, Fingerprint: 00000101020203030404050506060707080809090a0a0b0b0c0c0d0d0e0e0f0f (241 times)
+  Channel 3:
+    - Name: CustomWave_1, Fingerprint: 0001010202030304040505060607070807080809090a0a0b0b0c0c0d0d0e0e0f (18 times)
+    - Name: CustomWave_45, Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000000000102030304 (93 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:23
+Source File: .\07_Matoyas_Cave.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+  - CustomWave_44 (Fingerprint: 00000101020203030404050506060707080809090a0a0b0b0c0c0d0d0e0e0f0f)
+  - CustomWave_45 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000000000102030304)
+  - CustomWave_46 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000b0c0c0d0d0e0e0f)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_6, Fingerprint: 0b0c0e0d0d0e0c0b030302020101010100000000000000000101010102020303 (168 times)
+  Channel 1:
+    - Name: CustomWave_6, Fingerprint: 0b0c0e0d0d0e0c0b030302020101010100000000000000000101010102020303 (27 times)
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (306 times)
+    - Name: CustomWave_7, Fingerprint: 0f0f0f0f0f0f0f0f000000000000000000000000000000000000000000000000 (34 times)
+  Channel 2:
+    - Name: CustomWave_2, Fingerprint: 030402020f0f0e0e06030c0906000f0c0f0f0f0f0f0f02000706000a00000201 (168 times)
+    - Name: CustomWave_7, Fingerprint: 0f0f0f0f0f0f0f0f000000000000000000000000000000000000000000000000 (108 times)
+  Channel 3:
+    - Name: CustomWave_6, Fingerprint: 0b0c0e0d0d0e0c0b030302020101010100000000000000000101010102020303 (117 times)
+    - Name: PULSE, Fingerprint: 0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f00000000000000000000000000000000 (95 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:24
+Source File: .\07_Town.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+  - CustomWave_44 (Fingerprint: 00000101020203030404050506060707080809090a0a0b0b0c0c0d0d0e0e0f0f)
+  - CustomWave_45 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000000000102030304)
+  - CustomWave_46 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000b0c0c0d0d0e0e0f)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (144 times)
+  Channel 1:
+    - Name: CustomWave_40, Fingerprint: 0000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (247 times)
+  Channel 2:
+    - Name: CustomWave_40, Fingerprint: 0000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (184 times)
+  Channel 3:
+    - Name: CustomWave_13, Fingerprint: 000000000000000000000000000000000f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f (240 times)
+
+--- Conversion Log ---
+Timestamp: 2025-09-24 23:03:25
+Source File: .\17_Battle.vgm
+
+New Waveforms Registered:
+  - CustomWave_42 (Fingerprint: 0f0f0e0e0d0d0c0c0b0b0a0a0909080807070606050504040303020201010000)
+  - CustomWave_43 (Fingerprint: 0f0f0e0e0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303)
+  - CustomWave_44 (Fingerprint: 00000101020203030404050506060707080809090a0a0b0b0c0c0d0d0e0e0f0f)
+  - CustomWave_45 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000000000102030304)
+  - CustomWave_46 (Fingerprint: 0b0c0c0d0e0f0f0f0f0f0f0e0d0c0c0b04030302010000000b0c0c0d0d0e0e0f)
+
+Waveform Usage by Channel:
+  Channel 0:
+    - Name: CustomWave_1, Fingerprint: 0001010202030304040505060607070807080809090a0a0b0b0c0c0d0d0e0e0f (12 times)
+    - Name: CustomWave_2, Fingerprint: 030402020f0f0e0e06030c0906000f0c0f0f0f0f0f0f02000706000a00000201 (1 times)
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (155 times)
+  Channel 1:
+    - Name: CustomWave_2, Fingerprint: 030402020f0f0e0e06030c0906000f0c0f0f0f0f0f0f02000706000a00000201 (365 times)
+    - Name: CustomWave_3, Fingerprint: 0c0c0d0d0e0e0e0e0e0e0e0e0d0d0c0c03030202010101010101010102020303 (54 times)
+  Channel 2:
+    - Name: CustomWave_1, Fingerprint: 0001010202030304040505060607070807080809090a0a0b0b0c0c0d0d0e0e0f (386 times)
+  Channel 3:
+    - Name: Unknown, Fingerprint: NOISE_SOUND (785 times)
+
